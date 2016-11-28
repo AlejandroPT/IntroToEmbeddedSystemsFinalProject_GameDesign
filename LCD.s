@@ -1,6 +1,6 @@
 ; LCD.s
-; Student names: change this to your names or look very silly
-; Last modification date: change this to the last modification date or look very silly
+; Student names: Rogelio & Alejandro
+; Last modification date: 10/24/2016
 
 ; Runs on LM4F120/TM4C123
 ; Use SSI0 to send an 8-bit code to the ST7735 160x128 pixel LCD.
@@ -19,7 +19,9 @@
 ; VCC (pin 2) connected to +3.3 V
 ; Gnd (pin 1) connected to ground
 
-GPIO_PORTA_DATA_R       EQU   0x400043FC
+DC                      EQU   0x40004100
+DC_COMMAND              EQU   0
+DC_DATA                 EQU   0x40
 SSI0_DR_R               EQU   0x40008008
 SSI0_SR_R               EQU   0x4000800C
 SSI_SR_RNE              EQU   0x00000004  ; SSI Receive FIFO Not Empty
@@ -62,9 +64,25 @@ writecommand
 ;4) Write the command to SSI0_DR_R
 ;5) Read SSI0_SR_R and check bit 4, 
 ;6) If bit 4 is high, loop back to step 5 (wait for BUSY bit to be low)
+checkc1	
+	LDR  R3, =SSI0_SR_R				;
+	LDR  R2, [R3]					;
+	AND  R1, R2, #0x10				;	check bit 4
+	CMP  R1, #0x10					;	compare with a 1
+	BEQ  checkc1					;	bit 4 is high/1
+	LDR  R2, =DC					;
+	LDR  R1, [R2]					;
+	AND  R1, R1, #0xBF				;	clear bit 6
+	STR  R1, [R2]					;
+	LDR  R1, =SSI0_DR_R				;	place to write command
+	STRB R0, [R1]					;	write 8-bit command
+checkc2
+	LDR  R2, [R3]					;
+	AND  R1, R2, #0x10				;	check bit 4
+	CMP  R1, #0x10					;	compare with a 1
+	BEQ  checkc2					;	bit 4 is high/1  
 
-    
-    
+
     BX  LR                          ;   return
 
 ; This is a helper function that sends an 8-bit data to the LCD.
@@ -76,8 +94,19 @@ writedata
 ;2) If bit 1 is low loop back to step 1 (wait for TNF bit to be high)
 ;3) Set D/C=PA6 to one
 ;4) Write the 8-bit data to SSI0_DR_R
-
-    
+checkd	
+	LDR  R2, =SSI0_SR_R				;
+	LDR  R2, [R2]					;
+	AND  R1, R2, #1					;
+	CMP  R1, #0						; compare bit 1 with 1
+	BEQ  checkd						; if low/0 then loop back
+	LDR  R1, =DC					;
+	LDR  R2, [R1]					; 
+	ORR  R2, R2, #0x40				; set bit 6 to 1
+	STR  R2, [R1]					; read 8-bit data
+	LDR  R1, =SSI0_DR_R				;
+	STRB R0, [R1]					; store data
+	
     
     BX  LR                          ;   return
 
