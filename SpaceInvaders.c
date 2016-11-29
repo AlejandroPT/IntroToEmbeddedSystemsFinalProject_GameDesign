@@ -67,6 +67,8 @@ int ADCStatus = 0;
 int32_t xPlayer=0, yPlayer=155;
 int Score=0;
 int Enemy_Speed=30; //actual movements per seconds are 30/speed
+int lives=3;
+int missile_speed=2;
 
 // *************************** Images ***************************
 // enemy ship that starts at the top of the screen (arms/mouth closed)
@@ -201,6 +203,13 @@ const unsigned short Laser0[] = {
  0x0000, 0x4D84, 0x4D84, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
 };
 //
+const unsigned short Missile0[] = {
+ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000,
+ 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+ 0x0000,
+};
+
+//
 void SysTick_Init(void){
 	NVIC_ST_CTRL_R = 0; 				  // 1. disable Systick while setting up
 	NVIC_ST_RELOAD_R = 2666666-1; 	// 2. period a.k.a frequency determined by equation 
@@ -222,23 +231,23 @@ struct State{
 typedef struct State STyp;
 
 STyp Enemy[15]={
-	{0 ,10, SmallEnemy30pointA, 1},
-	{20 ,10, SmallEnemy30pointA, 1},
-	{40 ,10, SmallEnemy30pointA, 1},
-	{60 ,10, SmallEnemy30pointA, 1},
-	{80 ,10, SmallEnemy30pointA, 1},
+	{0 ,20, SmallEnemy30pointA, 1},
+	{20 ,20, SmallEnemy30pointA, 1},
+	{40 ,20, SmallEnemy30pointA, 1},
+	{60 ,20, SmallEnemy30pointA, 1},
+	{80 ,20, SmallEnemy30pointA, 1},
 	
-	{0 ,30, SmallEnemy20pointA, 1},
-	{20 ,30, SmallEnemy20pointA, 1},
-	{40 ,30, SmallEnemy20pointA, 1},
-	{60 ,30, SmallEnemy20pointA, 1},
-	{80 ,30, SmallEnemy20pointA, 1},
+	{0 ,40, SmallEnemy20pointA, 1},
+	{20 ,40, SmallEnemy20pointA, 1},
+	{40 ,40, SmallEnemy20pointA, 1},
+	{60 ,40, SmallEnemy20pointA, 1},
+	{80 ,40, SmallEnemy20pointA, 1},
 
-	{0 ,50, SmallEnemy10pointA, 1},
-	{20 ,50, SmallEnemy10pointA, 1},
-	{40 ,50, SmallEnemy10pointA, 1},
-	{60 ,50, SmallEnemy10pointA, 1},
-	{80 ,50, SmallEnemy10pointA, 1}
+	{0 ,60, SmallEnemy10pointA, 1},
+	{20 ,60, SmallEnemy10pointA, 1},
+	{40 ,60, SmallEnemy10pointA, 1},
+	{60 ,60, SmallEnemy10pointA, 1},
+	{80 ,60, SmallEnemy10pointA, 1}
 };
 //
 void Draw_Enemy(void){
@@ -246,78 +255,6 @@ void Draw_Enemy(void){
 		if(Enemy[i].life)
 			ST7735_DrawBitmap(Enemy[i].x, Enemy[i].y, Enemy[i].image, 16,10);
 	}
-}
-//
-void LevelUp(void){
-	STyp Enemy[]={
-		{0 ,10, SmallEnemy30pointA, 1},
-		{20 ,10, SmallEnemy30pointA, 1},
-		{40 ,10, SmallEnemy30pointA, 1},
-		{60 ,10, SmallEnemy30pointA, 1},
-		{80 ,10, SmallEnemy30pointA, 1},
-		
-		{0 ,30, SmallEnemy20pointA, 1},
-		{20 ,30, SmallEnemy20pointA, 1},
-		{40 ,30, SmallEnemy20pointA, 1},
-		{60 ,30, SmallEnemy20pointA, 1},
-		{80 ,30, SmallEnemy20pointA, 1},
-
-		{0 ,50, SmallEnemy10pointA, 1},
-		{20 ,50, SmallEnemy10pointA, 1},
-		{40 ,50, SmallEnemy10pointA, 1},
-		{60 ,50, SmallEnemy10pointA, 1},
-		{80 ,50, SmallEnemy10pointA, 1}
-	};
-	Enemy_Speed-=5;
-}
-//
-STyp Laser = {60,145,Laser0,0};
-void Player_Fire(){
-	Laser.x=xPlayer+7;
-	Laser.life=1;
-	Laser.y=145;
-	ST7735_DrawBitmap(Laser.x, Laser.y, Laser.image, 4,10);
-	button1Mail=0;
-}
-//
-void Move_Laser(void){
-	int topY=Laser.y-9;
-	static int count=0;
-	for(int i=0;i<15;i++){
-		if(Enemy[i].life){
-			if(topY <= Enemy[i].y && topY >= Enemy[i].y-9){ //check if collition with Y
-				if(Laser.x>=Enemy[i].x && Laser.x<=Enemy[i].x+15){
-					Enemy[i].life=0;
-					Laser.life=0;
-					ST7735_FillRect(Laser.x, Laser.y-10, 4, 10, 0x0000);
-					ST7735_FillRect(Enemy[i].x, Enemy[i].y-8, 16, 10, 0x0000);
-					Laser.y=145;
-					if(i<5)
-						Score+=30;
-					else if(i<10)
-						Score+=20;
-					else 
-						Score+=10;
-					if(Score%300==0)
-						LevelUp();
-					return;
-				}
-			}
-		}
-	}
-	if(Laser.y<=0){
-		Laser.life=0;
-		Laser.y=145;
-	}
-	if(count>=2){
-		Laser.y--;
-		count=0;
-	}
-	count++;
-}
-//
-void Draw_Laser(void){
-		ST7735_DrawBitmap(Laser.x, Laser.y, Laser.image, 4,10);
 }
 //
 void Move_Enemy(void){
@@ -339,7 +276,7 @@ void Move_Enemy(void){
 			for(int i=0;i<15;i++)
 				Enemy[i].y++;
 		}
-		if(Enemy[0].x<2){//check to see if the enemies are at the left border
+		if(Enemy[0].x<=2||Enemy[0].x>=200){//check to see if the enemies are at the left border
 			right=1;
 			for(int i=0;i<15;i++)
 				Enemy[i].y++;
@@ -366,12 +303,160 @@ void Move_Enemy(void){
 	}
 }
 //
+void LevelUp(void){
+	for(int i=0;i<5;i++){//restart values for enemies on top line
+		Enemy[i].x=i*20;
+		Enemy[i].y=20;
+		Enemy[i].life=1;
+	}
+	for(int i=5;i<10;i++){//restart values for enemies on middle line
+		Enemy[i].x=(i-5)*20;
+		Enemy[i].y=40;
+		Enemy[i].life=1;
+	}
+	for(int i=10;i<15;i++){//restart values for enemies on bottom line
+		Enemy[i].x=(i-10)*20;
+		Enemy[i].y=60;
+		Enemy[i].life=1;
+	}
+	if(Enemy_Speed!=5)//increase speed of enemies
+		Enemy_Speed-=5;
+	if(Score>=600)
+		missile_speed=1;
+}
+//
+STyp Laser = {60,145,Laser0,0};
+void Player_Fire(){
+	Laser.x=xPlayer+7;//draw initial laser at center of player
+	Laser.life=1;			//give life to laser
+	Laser.y=145;			//set it at the base, just on top of player
+	ST7735_DrawBitmap(Laser.x, Laser.y, Laser.image, 4,10);
+}
+//
+void Move_Laser(void){
+	int topY=Laser.y-9;
+	static int count=0;
+	for(int i=0;i<15;i++){
+		if(Enemy[i].life){
+			if(topY <= Enemy[i].y && topY >= Enemy[i].y-9){ //check if collition with Y of enemy
+				if(Laser.x>=Enemy[i].x && Laser.x<=Enemy[i].x+15){ //check if collition w/ x of enemy
+					Enemy[i].life=0; //kill enemy
+					Laser.life=0;			//kill laser
+					ST7735_FillRect(Laser.x, Laser.y-10, 4, 10, 0x0000); //erase laser
+					ST7735_FillRect(Enemy[i].x, Enemy[i].y-8, 16, 10, 0x0000); //erase enemy
+					Laser.y=145;	//reset laser value
+					if(i<5)//asign scores depending on enemy killed, 30 for top, 20 mid, 10 buttom
+						Score+=30;
+					else if(i<10)
+						Score+=20;
+					else 
+						Score+=10;
+					if(Score%300==0)
+						LevelUp();
+					return;
+				}
+			}
+		}
+	}
+	if(Laser.y<=0){//check if laser out of bounds, and if so, kill it
+		Laser.life=0;
+		Laser.y=145;
+	}
+	if(count>=1){//move laser every cycle(30hz)
+		Laser.y--;
+		count=0;
+	}
+	count++;
+}
+//
+void Draw_Laser(void){
+		ST7735_DrawBitmap(Laser.x, Laser.y, Laser.image, 4,10);
+}
+//
+STyp Missiles[5]={
+	{0 ,10, Missile0, 0},
+	{20 ,10, Missile0, 0},
+	{40 ,10, Missile0, 0},
+	{60 ,10, Missile0, 0},
+	{80 ,10, Missile0, 0},
+};
+void Enemy_Fire(void){
+	static int count=0;
+	if(count>=100){
+		int will_fire = Random()%10;//fires only when 0
+		int who_fire;
+		int missile=5;
+		for(int i=0;i<5;i++){
+			if(!Missiles[i].life)
+				missile=i;
+		}
+		if(!will_fire&&missile!=5){
+			who_fire = Random()%5;
+			who_fire+=10;
+			if(!Enemy[who_fire].life){
+				who_fire-=5;
+				if(!Enemy[who_fire].life){
+					who_fire-=5;
+					if(!Enemy[who_fire].life)
+						will_fire=1;
+				}
+			}
+			if(!will_fire){
+				Missiles[missile].life=1;
+				Missiles[missile].x=Enemy[who_fire].x+6;
+				Missiles[missile].y=Enemy[who_fire].y+11;
+				ST7735_DrawBitmap(Missiles[missile].x, Missiles[missile].y, Missiles[missile].image, 3,11);
+			}
+		}
+		count=0;
+	}
+	count++;
+}
+//
+void Move_Missile(void){
+	static int count=0;
+	for(int i=0;i<5;i++){
+		if(Missiles[i].life){
+			if(Missiles[i].y>=147)
+				if(Missiles[i].x>=xPlayer&&Missiles[i].x<=xPlayer+18){
+					lives--;
+					ST7735_FillRect(Missiles[i].x-1, Missiles[i].y-12, 4, 11, 0x0000);
+					Missiles[i].life=0;
+					Missiles[i].y=0;
+				}
+				if(Missiles[i].y>=170){
+					Missiles[i].life=0;
+					Missiles[i].y=0;
+				}
+		}
+	}
+	if(count>=missile_speed){//move laser every cycle(30hz)
+		for(int i=0;i<5;i++)
+			Missiles[i].y++;
+		count=0;
+	}
+	count++;
+	
+		
+	
+}
+//
+void Draw_Missile(void){
+	for(int i=0;i<5;i++){
+		if(Missiles[i].life)
+			ST7735_DrawBitmap(Missiles[i].x, Missiles[i].y, Missiles[i].image, 3,11);
+	}
+}
+//
 void SysTick_Handler(void){
 	ADCMail = ADC_In();	//get ADC
 	button1Mail= button1(); //get Button
+	Move_Enemy();	
+	Move_Missile();
 	ADCStatus = 1;				//set status
-	Move_Enemy();					
+					
 	IO_HeartBeat();
+	//Enemy_Fire();
 	return;
 }
 //
@@ -386,6 +471,7 @@ int main(void){
  
   while(1){
 		Draw_Enemy();
+		Draw_Missile();
 		int ADC= ADCMail;
 		xPlayer=ADC*(112)/4098;
 		ST7735_FillRect(0, 155-7, 160, 8, 0x0000);
@@ -398,6 +484,10 @@ int main(void){
 		}
 		ST7735_SetCursor(0,0);
 		LCD_OutDec(Score);
+		ST7735_SetCursor(7,0);
+		ST7735_OutString("Lives ");
+		LCD_OutDec(lives);
+		Enemy_Fire();
   }
 }
 
