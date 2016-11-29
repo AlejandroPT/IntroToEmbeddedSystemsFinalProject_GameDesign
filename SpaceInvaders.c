@@ -61,7 +61,9 @@ void DisableInterrupts(void); // Disable interrupts
 void EnableInterrupts(void);  // Enable interrupts
 void Delay100ms(uint32_t count); // time delay in 0.1 seconds
 
-
+int ADCMail;
+int button1Mail;
+int ADCStatus = 0;
 // *************************** Images ***************************
 // enemy ship that starts at the top of the screen (arms/mouth closed)
 // width=16 x height=10
@@ -187,40 +189,78 @@ const unsigned short Bunker0[] = {
 
 
 // *************************** Capture image dimensions out of BMP**********
-
+void SysTick_Init(void){
+	NVIC_ST_CTRL_R = 0; 				  // 1. disable Systick while setting up
+	NVIC_ST_RELOAD_R = 2000000-1; 	// 2. period a.k.a frequency determined by equation 
+	NVIC_ST_CURRENT_R = 0;				// 3. clear current state
+	NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R&0x00FFFFFF) | 0x20000000; // 4. priority set to 1
+	NVIC_ST_CTRL_R = 0x0007; 			// 4. reanable Systick with clock and interrupts
+}
+//
+uint32_t test=0;
+uint32_t button1(void){
+	test= (GPIO_PORTF_DATA_R);
+	GPIO_PORTF_DATA_R ^= 0x04;
+	GPIO_PORTF_DATA_R ^= 0x04;
+	GPIO_PORTF_DATA_R ^= 0x04;
+	GPIO_PORTF_DATA_R ^= 0x04;
+	test= (GPIO_PORTF_DATA_R&0x10);
+	uint32_t testjnkq=test;
+	GPIO_PORTF_DATA_R ^= 0x04;
+	//GPIO_PORTF_DATA_R ^= 0x10;
+	return (GPIO_PORTE_DATA_R&0x08);
+}
+//
+void SysTick_Handler(void){
+	ADCMail = ADC_In();
+	button1Mail= button1();
+	ADCStatus = 1;
+	//GPIO_PORTF_DATA_R ^= 0x04; // toggle Port PF1
+	return;
+}
+//
+void PortF_Init(void){ 
+	volatile unsigned long delay;
+	SYSCTL_RCGCGPIO_R |= 0x20;
+	while((SYSCTL_PRGPIO_R&0x20) == 0){};
+  GPIO_PORTF_LOCK_R = 0x4C4F434B;   // 1) unlock GPIO Port F
+  GPIO_PORTF_CR_R = 0x14;           // allow changes to PF4
+	GPIO_PORTF_AMSEL_R = 0x00;        // 2) disable analog on PF
+  GPIO_PORTF_PCTL_R = 0x00000000;   // 3) PCTL GPIO on PF4
+  GPIO_PORTF_DIR_R &= ~0x02;           // 4) PF4 in
+	GPIO_PORTF_DIR_R |= 0x04; 	
+  GPIO_PORTF_AFSEL_R = 0x00;        // 5) disable alt funct on PF7-0
+  GPIO_PORTF_PUR_R |= 0x00;
+	GPIO_PORTF_DEN_R &= ~0x06;          // 6) enable digital I/O on PF3-1
+}
+//
 int main(void){
   TExaS_Init();  // set system clock to 80 MHz
   Random_Init(1);
+	ADC_Init();
+	SysTick_Init();
 
   Output_Init();
+	PortF_Init();
   ST7735_FillScreen(0x0000);            // set screen to black
-  
-  ST7735_DrawBitmap(52, 159, PlayerShip0, 18,8); // player ship middle bottom
-  ST7735_DrawBitmap(53, 151, Bunker0, 18,5);
-
-  ST7735_DrawBitmap(0, 9, SmallEnemy10pointA, 16,10);
-  ST7735_DrawBitmap(20,9, SmallEnemy10pointB, 16,10);
-  ST7735_DrawBitmap(40, 9, SmallEnemy20pointA, 16,10);
-  ST7735_DrawBitmap(60, 9, SmallEnemy20pointB, 16,10);
-  ST7735_DrawBitmap(80, 9, SmallEnemy30pointA, 16,10);
-  ST7735_DrawBitmap(100, 9, SmallEnemy30pointB, 16,10);
-
-
-  Delay100ms(50);              // delay 5 sec at 80 MHz
-
-
-  ST7735_FillScreen(0x0000);            // set screen to black
-  ST7735_SetCursor(1, 1);
-  ST7735_OutString("GAME OVER");
-  ST7735_SetCursor(1, 2);
-  ST7735_OutString("Nice try,");
-  ST7735_SetCursor(1, 3);
-  ST7735_OutString("Earthling!");
-  ST7735_SetCursor(2, 4);
-  LCD_OutDec(1234);
+ 
+	int16_t xTest=0, yTest=155;
+	int16_t up=0,right=1;
+	
   while(1){
+		
+		int ADC= ADCMail;
+		xTest=ADC*(112)/4098;
+		ST7735_FillRect(0, 155-7, 160, 8, 0x0000);
+		ST7735_DrawBitmap(xTest, yTest, PlayerShip0, 18,8);
+		if(button1Mail){
+			ST7735_FillRect(50, 50, 50, 8, 0x0F00);
+		}
+		else{
+			ST7735_FillRect(5, 50, 50, 8, 0xF000);
+		}
+	Delay100ms(1);
   }
-
 }
 
 
@@ -228,7 +268,7 @@ int main(void){
 
 void Delay100ms(uint32_t count){uint32_t volatile time;
   while(count>0){
-    time = 727240;  // 0.1sec at 80 MHz
+    time = 727240; // 0.1sec at 80 MHz
     while(time){
 	  	time--;
     }

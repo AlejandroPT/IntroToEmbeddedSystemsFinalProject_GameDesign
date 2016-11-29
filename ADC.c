@@ -16,8 +16,9 @@ void ADC_Init(void){
 	SYSCTL_RCGCGPIO_R |= 0x30;      // 1) activate clock for Port E and F
   while((SYSCTL_PRGPIO_R&0x10) == 0){};
   GPIO_PORTE_DIR_R &= ~0x10;      // 2) make PE4 input
+	GPIO_PORTE_DIR_R |= ~0x08;	//
   GPIO_PORTE_AFSEL_R |= 0x10;     // 3) enable alternate fun on PE4
-  GPIO_PORTE_DEN_R &= ~0x10;      // 4) disable digital I/O on PE4 because it now analog 
+  GPIO_PORTE_DEN_R &= ~0x18;  //    // 4) disable digital I/O on PE4 because it now analog 
   GPIO_PORTE_AMSEL_R |= 0x10;     // 5) enable analog fun on PE4
   SYSCTL_RCGCADC_R |= 0x01;       // 6) turn on clock for the ADC0 
   delay = SYSCTL_RCGCADC_R;       // extra time to stabilize
@@ -32,7 +33,6 @@ void ADC_Init(void){
   ADC0_SSCTL3_R = 0x0006;         // 12) no TS0 D0, yes IE0 END0
   ADC0_IM_R &= ~0x0008;           // 13) disable SS3 interrupts
   ADC0_ACTSS_R |= 0x0008;         // 14) enable sample sequencer 3
-
 }
 
 //------------ADC_In------------
@@ -47,5 +47,16 @@ uint32_t ADC_In(void){
   ADC0_ISC_R = 0x0008;             // 4) acknowledge completion by clearing the bit
   return result;
 }
+//uint32_t test;
 
+//uint32_t button1(void){
+//	GPIO_PORTF_DATA_R ^= 0x04;
+//	GPIO_PORTF_DATA_R ^= 0x04;
+//	GPIO_PORTF_DATA_R ^= 0x04;
+//	GPIO_PORTF_DATA_R ^= 0x04;
+//	test= (GPIO_PORTF_DATA_R&0x10);
+//	uint32_t testjnkq=test;
+//	GPIO_PORTF_DATA_R ^= 0x04;
+//	return (GPIO_PORTF_DATA_R&0x10);
+//}
 
