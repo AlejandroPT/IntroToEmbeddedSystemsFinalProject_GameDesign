@@ -64,6 +64,10 @@ void Delay100ms(uint32_t count); // time delay in 0.1 seconds
 int ADCMail;
 int button1Mail;
 int ADCStatus = 0;
+int32_t xPlayer=0, yPlayer=155;
+int Score=0;
+int Enemy_Speed=30; //actual movements per seconds are 30/speed
+
 // *************************** Images ***************************
 // enemy ship that starts at the top of the screen (arms/mouth closed)
 // width=16 x height=10
@@ -189,9 +193,17 @@ const unsigned short Bunker0[] = {
 
 
 // *************************** Capture image dimensions out of BMP**********
+//Laser from Player
+//width = 4 height = 10
+const unsigned short Laser0[] = {
+ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x4D84, 0x4D84, 0x0000, 0x0000, 0x4D84, 0x4D84, 0x0000, 0x0000, 0x4D84, 0x4D84, 0x0000,
+ 0x0000, 0x4D84, 0x4D84, 0x0000, 0x0000, 0x4D84, 0x4D84, 0x0000, 0x0000, 0x4D84, 0x4D84, 0x0000, 0x0000, 0x4D84, 0x4D84, 0x0000,
+ 0x0000, 0x4D84, 0x4D84, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+};
+//
 void SysTick_Init(void){
 	NVIC_ST_CTRL_R = 0; 				  // 1. disable Systick while setting up
-	NVIC_ST_RELOAD_R = 2000000-1; 	// 2. period a.k.a frequency determined by equation 
+	NVIC_ST_RELOAD_R = 2666666-1; 	// 2. period a.k.a frequency determined by equation 
 	NVIC_ST_CURRENT_R = 0;				// 3. clear current state
 	NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R&0x00FFFFFF) | 0x20000000; // 4. priority set to 1
 	NVIC_ST_CTRL_R = 0x0007; 			// 4. reanable Systick with clock and interrupts
@@ -201,15 +213,6 @@ uint32_t button1(void){
 	return (GPIO_PORTF_DATA_R&0x10);
 }
 //
-void SysTick_Handler(void){
-	ADCMail = ADC_In();
-	button1Mail= button1();
-	ADCStatus = 1;
-	GPIO_PORTF_DATA_R ^= 0x04; // toggle Port PF1
-	return;
-}
-
-
 struct State{
 	unsigned long x;
 	unsigned long y;
@@ -218,62 +221,183 @@ struct State{
 };
 typedef struct State STyp;
 
-STyp Enemy[18]={
+STyp Enemy[15]={
 	{0 ,10, SmallEnemy30pointA, 1},
 	{20 ,10, SmallEnemy30pointA, 1},
 	{40 ,10, SmallEnemy30pointA, 1},
 	{60 ,10, SmallEnemy30pointA, 1},
 	{80 ,10, SmallEnemy30pointA, 1},
-	{100 ,10, SmallEnemy30pointA, 1},
-	{0 ,30, SmallEnemy30pointA, 1},
-	{20 ,30, SmallEnemy30pointA, 1},
-	{40 ,30, SmallEnemy30pointA, 1},
-	{60 ,30, SmallEnemy30pointA, 1},
-	{80 ,30, SmallEnemy30pointA, 1},
-	{100 ,30, SmallEnemy30pointA, 1},
-	{0 ,50, SmallEnemy30pointA, 1},
-	{20 ,50, SmallEnemy30pointA, 1},
-	{40 ,50, SmallEnemy30pointA, 1},
-	{60 ,50, SmallEnemy30pointA, 1},
-	{80 ,50, SmallEnemy30pointA, 1},
-	{100 ,50, SmallEnemy30pointA, 1},
 	
-	
-};
+	{0 ,30, SmallEnemy20pointA, 1},
+	{20 ,30, SmallEnemy20pointA, 1},
+	{40 ,30, SmallEnemy20pointA, 1},
+	{60 ,30, SmallEnemy20pointA, 1},
+	{80 ,30, SmallEnemy20pointA, 1},
 
-void Enemy_Init(void){
-	for(int i=0; i<18;i++){
-		ST7735_DrawBitmap(Enemy[i].x, Enemy[i].y, Enemy[i].image, 16,10);
-		
+	{0 ,50, SmallEnemy10pointA, 1},
+	{20 ,50, SmallEnemy10pointA, 1},
+	{40 ,50, SmallEnemy10pointA, 1},
+	{60 ,50, SmallEnemy10pointA, 1},
+	{80 ,50, SmallEnemy10pointA, 1}
+};
+//
+void Draw_Enemy(void){
+	for(int i=0; i<15;i++){
+		if(Enemy[i].life)
+			ST7735_DrawBitmap(Enemy[i].x, Enemy[i].y, Enemy[i].image, 16,10);
 	}
 }
+//
+void LevelUp(void){
+	STyp Enemy[]={
+		{0 ,10, SmallEnemy30pointA, 1},
+		{20 ,10, SmallEnemy30pointA, 1},
+		{40 ,10, SmallEnemy30pointA, 1},
+		{60 ,10, SmallEnemy30pointA, 1},
+		{80 ,10, SmallEnemy30pointA, 1},
+		
+		{0 ,30, SmallEnemy20pointA, 1},
+		{20 ,30, SmallEnemy20pointA, 1},
+		{40 ,30, SmallEnemy20pointA, 1},
+		{60 ,30, SmallEnemy20pointA, 1},
+		{80 ,30, SmallEnemy20pointA, 1},
+
+		{0 ,50, SmallEnemy10pointA, 1},
+		{20 ,50, SmallEnemy10pointA, 1},
+		{40 ,50, SmallEnemy10pointA, 1},
+		{60 ,50, SmallEnemy10pointA, 1},
+		{80 ,50, SmallEnemy10pointA, 1}
+	};
+	Enemy_Speed-=5;
+}
+//
+STyp Laser = {60,145,Laser0,0};
+void Player_Fire(){
+	Laser.x=xPlayer+7;
+	Laser.life=1;
+	Laser.y=145;
+	ST7735_DrawBitmap(Laser.x, Laser.y, Laser.image, 4,10);
+	button1Mail=0;
+}
+//
+void Move_Laser(void){
+	int topY=Laser.y-9;
+	static int count=0;
+	for(int i=0;i<15;i++){
+		if(Enemy[i].life){
+			if(topY <= Enemy[i].y && topY >= Enemy[i].y-9){ //check if collition with Y
+				if(Laser.x>=Enemy[i].x && Laser.x<=Enemy[i].x+15){
+					Enemy[i].life=0;
+					Laser.life=0;
+					ST7735_FillRect(Laser.x, Laser.y-10, 4, 10, 0x0000);
+					ST7735_FillRect(Enemy[i].x, Enemy[i].y-8, 16, 10, 0x0000);
+					Laser.y=145;
+					if(i<5)
+						Score+=30;
+					else if(i<10)
+						Score+=20;
+					else 
+						Score+=10;
+					if(Score%300==0)
+						LevelUp();
+					return;
+				}
+			}
+		}
+	}
+	if(Laser.y<=0){
+		Laser.life=0;
+		Laser.y=145;
+	}
+	if(count>=2){
+		Laser.y--;
+		count=0;
+	}
+	count++;
+}
+//
+void Draw_Laser(void){
+		ST7735_DrawBitmap(Laser.x, Laser.y, Laser.image, 4,10);
+}
+//
+void Move_Enemy(void){
+	static int count =0; //so that the enemy move once a second
+	static int right =1;	//to know what direction the enemies are moving
+	static int A=1;			// to know whether enemy image A or B
+	count++;
+	if(count>=Enemy_Speed){    //check if the second is up
+		if(right){			//if it is moving right
+			for(int i=0;i<15;i++)
+				Enemy[i].x++;
+		}
+		else{					//if it is moving left
+			for(int i=0;i<15;i++)
+				Enemy[i].x--;
+		}
+		if(Enemy[4].x>=110){//check to see if the enemies are at the right border
+			right=0;
+			for(int i=0;i<15;i++)
+				Enemy[i].y++;
+		}
+		if(Enemy[0].x<2){//check to see if the enemies are at the left border
+			right=1;
+			for(int i=0;i<15;i++)
+				Enemy[i].y++;
+		}
+		if(A){	//change the enemies' image from B to A
+			for(int i=0;i<5;i++)
+				Enemy[i].image=SmallEnemy30pointA;
+			for(int i=5;i<10;i++)
+				Enemy[i].image=SmallEnemy20pointA;
+			for(int i=10;i<15;i++)
+				Enemy[i].image=SmallEnemy10pointA;
+			A=0;
+		}
+		else{  //change the enemies' image from A to B
+			for(int i=0;i<5;i++)
+				Enemy[i].image=SmallEnemy30pointB;
+			for(int i=5;i<10;i++)
+				Enemy[i].image=SmallEnemy20pointB;
+			for(int i=10;i<15;i++)
+				Enemy[i].image=SmallEnemy10pointB;
+			A=1;
+		}
+		count=0;
+	}
+}
+//
+void SysTick_Handler(void){
+	ADCMail = ADC_In();	//get ADC
+	button1Mail= button1(); //get Button
+	ADCStatus = 1;				//set status
+	Move_Enemy();					
+	IO_HeartBeat();
+	return;
+}
+//
 int main(void){
   TExaS_Init();  // set system clock to 80 MHz
   Random_Init(1);
 	ADC_Init();
 	SysTick_Init();
-
   Output_Init();
 	IO_Init();
-	
   ST7735_FillScreen(0x0000);            // set screen to black
  
-	int16_t xTest=0, yTest=155;
-	int16_t up=0,right=1;
-	Enemy_Init();
   while(1){
-		Enemy_Init();
+		Draw_Enemy();
 		int ADC= ADCMail;
-		xTest=ADC*(112)/4098;
+		xPlayer=ADC*(112)/4098;
 		ST7735_FillRect(0, 155-7, 160, 8, 0x0000);
-		ST7735_DrawBitmap(xTest, yTest, PlayerShip0, 18,8);
-		if(button1Mail){
-			ST7735_FillRect(50, 50, 50, 8, 0x0F00);
+		ST7735_DrawBitmap(xPlayer, yPlayer, PlayerShip0, 18,8);
+		if(button1Mail&&!Laser.life)
+			Player_Fire();
+		if(Laser.life){
+			Draw_Laser();
+			Move_Laser();
 		}
-		else{
-			ST7735_FillRect(50, 50, 50, 8, 0xF000);
-		}
-	//Delay100ms(1);
+		ST7735_SetCursor(0,0);
+		LCD_OutDec(Score);
   }
 }
 
