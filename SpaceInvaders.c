@@ -197,43 +197,56 @@ void SysTick_Init(void){
 	NVIC_ST_CTRL_R = 0x0007; 			// 4. reanable Systick with clock and interrupts
 }
 //
-uint32_t test=0;
 uint32_t button1(void){
-	test= (GPIO_PORTF_DATA_R);
-	GPIO_PORTF_DATA_R ^= 0x04;
-	GPIO_PORTF_DATA_R ^= 0x04;
-	GPIO_PORTF_DATA_R ^= 0x04;
-	GPIO_PORTF_DATA_R ^= 0x04;
-	test= (GPIO_PORTF_DATA_R&0x10);
-	uint32_t testjnkq=test;
-	GPIO_PORTF_DATA_R ^= 0x04;
-	//GPIO_PORTF_DATA_R ^= 0x10;
-	return (GPIO_PORTE_DATA_R&0x08);
+	return (GPIO_PORTF_DATA_R&0x10);
 }
 //
 void SysTick_Handler(void){
 	ADCMail = ADC_In();
 	button1Mail= button1();
 	ADCStatus = 1;
-	//GPIO_PORTF_DATA_R ^= 0x04; // toggle Port PF1
+	GPIO_PORTF_DATA_R ^= 0x04; // toggle Port PF1
 	return;
 }
-//
-void PortF_Init(void){ 
-	volatile unsigned long delay;
-	SYSCTL_RCGCGPIO_R |= 0x20;
-	while((SYSCTL_PRGPIO_R&0x20) == 0){};
-  GPIO_PORTF_LOCK_R = 0x4C4F434B;   // 1) unlock GPIO Port F
-  GPIO_PORTF_CR_R = 0x14;           // allow changes to PF4
-	GPIO_PORTF_AMSEL_R = 0x00;        // 2) disable analog on PF
-  GPIO_PORTF_PCTL_R = 0x00000000;   // 3) PCTL GPIO on PF4
-  GPIO_PORTF_DIR_R &= ~0x02;           // 4) PF4 in
-	GPIO_PORTF_DIR_R |= 0x04; 	
-  GPIO_PORTF_AFSEL_R = 0x00;        // 5) disable alt funct on PF7-0
-  GPIO_PORTF_PUR_R |= 0x00;
-	GPIO_PORTF_DEN_R &= ~0x06;          // 6) enable digital I/O on PF3-1
+
+
+struct State{
+	unsigned long x;
+	unsigned long y;
+	const unsigned short *image;
+	int life;
+};
+typedef struct State STyp;
+
+STyp Enemy[18]={
+	{0 ,10, SmallEnemy30pointA, 1},
+	{20 ,10, SmallEnemy30pointA, 1},
+	{40 ,10, SmallEnemy30pointA, 1},
+	{60 ,10, SmallEnemy30pointA, 1},
+	{80 ,10, SmallEnemy30pointA, 1},
+	{100 ,10, SmallEnemy30pointA, 1},
+	{0 ,30, SmallEnemy30pointA, 1},
+	{20 ,30, SmallEnemy30pointA, 1},
+	{40 ,30, SmallEnemy30pointA, 1},
+	{60 ,30, SmallEnemy30pointA, 1},
+	{80 ,30, SmallEnemy30pointA, 1},
+	{100 ,30, SmallEnemy30pointA, 1},
+	{0 ,50, SmallEnemy30pointA, 1},
+	{20 ,50, SmallEnemy30pointA, 1},
+	{40 ,50, SmallEnemy30pointA, 1},
+	{60 ,50, SmallEnemy30pointA, 1},
+	{80 ,50, SmallEnemy30pointA, 1},
+	{100 ,50, SmallEnemy30pointA, 1},
+	
+	
+};
+
+void Enemy_Init(void){
+	for(int i=0; i<18;i++){
+		ST7735_DrawBitmap(Enemy[i].x, Enemy[i].y, Enemy[i].image, 16,10);
+		
+	}
 }
-//
 int main(void){
   TExaS_Init();  // set system clock to 80 MHz
   Random_Init(1);
@@ -241,14 +254,15 @@ int main(void){
 	SysTick_Init();
 
   Output_Init();
-	PortF_Init();
+	IO_Init();
+	
   ST7735_FillScreen(0x0000);            // set screen to black
  
 	int16_t xTest=0, yTest=155;
 	int16_t up=0,right=1;
-	
+	Enemy_Init();
   while(1){
-		
+		Enemy_Init();
 		int ADC= ADCMail;
 		xTest=ADC*(112)/4098;
 		ST7735_FillRect(0, 155-7, 160, 8, 0x0000);
@@ -257,9 +271,9 @@ int main(void){
 			ST7735_FillRect(50, 50, 50, 8, 0x0F00);
 		}
 		else{
-			ST7735_FillRect(5, 50, 50, 8, 0xF000);
+			ST7735_FillRect(50, 50, 50, 8, 0xF000);
 		}
-	Delay100ms(1);
+	//Delay100ms(1);
   }
 }
 

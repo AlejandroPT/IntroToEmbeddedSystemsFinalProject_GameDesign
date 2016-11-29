@@ -16,9 +16,8 @@ void ADC_Init(void){
 	SYSCTL_RCGCGPIO_R |= 0x30;      // 1) activate clock for Port E and F
   while((SYSCTL_PRGPIO_R&0x10) == 0){};
   GPIO_PORTE_DIR_R &= ~0x10;      // 2) make PE4 input
-	GPIO_PORTE_DIR_R |= ~0x08;	//
   GPIO_PORTE_AFSEL_R |= 0x10;     // 3) enable alternate fun on PE4
-  GPIO_PORTE_DEN_R &= ~0x18;  //    // 4) disable digital I/O on PE4 because it now analog 
+  GPIO_PORTE_DEN_R &= ~0x10;      // 4) disable digital I/O on PE4 because it now analog 
   GPIO_PORTE_AMSEL_R |= 0x10;     // 5) enable analog fun on PE4
   SYSCTL_RCGCADC_R |= 0x01;       // 6) turn on clock for the ADC0 
   delay = SYSCTL_RCGCADC_R;       // extra time to stabilize
