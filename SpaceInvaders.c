@@ -69,6 +69,10 @@ int Score=0;
 int Enemy_Speed=30; //actual movements per seconds are 30/speed
 int lives=3;
 int missile_speed=2;
+int missile_speed2=1;
+int fire_random=10;
+int enemy_position=20;
+int level=1;
 
 // *************************** Images ***************************
 // enemy ship that starts at the top of the screen (arms/mouth closed)
@@ -306,23 +310,30 @@ void Move_Enemy(void){
 void LevelUp(void){
 	for(int i=0;i<5;i++){//restart values for enemies on top line
 		Enemy[i].x=i*20;
-		Enemy[i].y=20;
+		Enemy[i].y=enemy_position;
 		Enemy[i].life=1;
 	}
 	for(int i=5;i<10;i++){//restart values for enemies on middle line
 		Enemy[i].x=(i-5)*20;
-		Enemy[i].y=40;
+		Enemy[i].y=enemy_position+20;
 		Enemy[i].life=1;
 	}
 	for(int i=10;i<15;i++){//restart values for enemies on bottom line
 		Enemy[i].x=(i-10)*20;
-		Enemy[i].y=60;
+		Enemy[i].y=enemy_position+40;
 		Enemy[i].life=1;
 	}
 	if(Enemy_Speed!=5)//increase speed of enemies
 		Enemy_Speed-=5;
-	if(Score>=600)
+	if(Score>=300)
 		missile_speed=1;
+	if(Score>=900)
+		missile_speed2=2;
+	if(fire_random>=3)
+		fire_random-=2;
+	if(enemy_position<=130)
+		enemy_position+=10;
+	level++;
 }
 //
 STyp Laser = {60,145,Laser0,0};
@@ -383,7 +394,7 @@ STyp Missiles[5]={
 void Enemy_Fire(void){
 	static int count=0;
 	if(count>=100){
-		int will_fire = Random()%10;//fires only when 0
+		int will_fire = Random()%fire_random;//fires only when 0
 		int who_fire;
 		int missile=5;
 		for(int i=0;i<5;i++){
@@ -432,7 +443,7 @@ void Move_Missile(void){
 	}
 	if(count>=missile_speed){//move laser every cycle(30hz)
 		for(int i=0;i<5;i++)
-			Missiles[i].y++;
+			Missiles[i].y+=missile_speed2;
 		count=0;
 	}
 	count++;
@@ -469,7 +480,7 @@ int main(void){
 	IO_Init();
   ST7735_FillScreen(0x0000);            // set screen to black
  
-  while(1){
+  while(lives){
 		Draw_Enemy();
 		Draw_Missile();
 		int ADC= ADCMail;
@@ -484,11 +495,19 @@ int main(void){
 		}
 		ST7735_SetCursor(0,0);
 		LCD_OutDec(Score);
-		ST7735_SetCursor(7,0);
+		ST7735_SetCursor(5,0);
 		ST7735_OutString("Lives ");
 		LCD_OutDec(lives);
+		ST7735_SetCursor(14,0);
+		ST7735_OutString("Lvl ");
+		LCD_OutDec(level);
 		Enemy_Fire();
   }
+	ST7735_FillScreen(0x0000);
+	ST7735_SetCursor(5,5);
+	ST7735_OutString("You're Dead ");
+	ST7735_SetCursor(5,7);
+	ST7735_OutString("Press reset ");
 }
 
 
