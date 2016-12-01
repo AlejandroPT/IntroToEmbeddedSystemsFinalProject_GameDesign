@@ -1140,21 +1140,54 @@ const uint8_t highpitch[1802] = {
 void Sound_Init(void){
 // write this
 };
+
+struct State{
+	unsigned long length;
+	unsigned long index;
+	const uint8_t *sound;
+	int life;
+};
+typedef struct State music;
+
+music Sounds[3]={
+	{4080,0,shoot,0},
+	{3377,0,invaderkilled,0},
+	{2000,0,explosion,0},
+};
+
+
+//
+void Sound_Play2(void){
+	for(int i=0;i<3;i++){
+		if(Sounds[i].life){
+			DAC_Out(Sounds[i].sound[Sounds[i].index]);
+			Sounds[i].index++;
+		}
+		if(Sounds[i].index>=Sounds[i].length){
+			Sounds[i].life=0;
+			Sounds[i].index=0;
+		}
+	}
+	
+}
 void Sound_Play(const uint8_t *pt, uint32_t count){
-// write this
+	
 };
 void Sound_Shoot(void){
-// write this
+	Sounds[0].life=1;
+	Sounds[0].index=0;
 };
 void Sound_Killed(void){
-// write this
+	Sounds[2].life=1;
+	Sounds[2].index=0;
 };
 void Sound_Explosion(void){
 // write this
 };
 
-void Sound_Fastinvader1(void){
-// write this
+void Sound_InvaderKilled(void){
+	Sounds[1].life=1;
+	Sounds[1].index=0;
 };
 void Sound_Fastinvader2(void){
 // write this

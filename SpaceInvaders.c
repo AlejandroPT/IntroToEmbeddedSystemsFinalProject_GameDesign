@@ -55,6 +55,7 @@
 #include "Random.h"
 #include "TExaS.h"
 #include "ADC.h"
+#include "DAC.h"
 
 
 void DisableInterrupts(void); // Disable interrupts
@@ -342,6 +343,7 @@ void Player_Fire(){
 	Laser.life=1;			//give life to laser
 	Laser.y=145;			//set it at the base, just on top of player
 	ST7735_DrawBitmap(Laser.x, Laser.y, Laser.image, 4,10);
+	Sound_Shoot();
 }
 //
 void Move_Laser(void){
@@ -356,6 +358,7 @@ void Move_Laser(void){
 					ST7735_FillRect(Laser.x, Laser.y-10, 4, 10, 0x0000); //erase laser
 					ST7735_FillRect(Enemy[i].x, Enemy[i].y-8, 16, 10, 0x0000); //erase enemy
 					Laser.y=145;	//reset laser value
+					Sound_InvaderKilled();
 					if(i<5)//asign scores depending on enemy killed, 30 for top, 20 mid, 10 buttom
 						Score+=30;
 					else if(i<10)
@@ -434,11 +437,12 @@ void Move_Missile(void){
 					ST7735_FillRect(Missiles[i].x-1, Missiles[i].y-12, 4, 11, 0x0000);
 					Missiles[i].life=0;
 					Missiles[i].y=0;
+					Sound_Killed();
 				}
-				if(Missiles[i].y>=170){
-					Missiles[i].life=0;
-					Missiles[i].y=0;
-				}
+			if(Missiles[i].y>=170){
+				Missiles[i].life=0;
+				Missiles[i].y=0;
+			}
 		}
 	}
 	if(count>=missile_speed){//move laser every cycle(30hz)
@@ -473,13 +477,16 @@ void SysTick_Handler(void){
 //
 int main(void){
   TExaS_Init();  // set system clock to 80 MHz
+	DAC_Init();
   Random_Init(1);
 	ADC_Init();
 	SysTick_Init();
+	
   Output_Init();
 	IO_Init();
+	
+	Timer0_Init(7273);
   ST7735_FillScreen(0x0000);            // set screen to black
- 
   while(lives){
 		Draw_Enemy();
 		Draw_Missile();
