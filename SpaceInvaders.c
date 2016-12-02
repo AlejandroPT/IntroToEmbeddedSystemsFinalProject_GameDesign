@@ -73,8 +73,10 @@ int lives=3;
 int missile_speed=2;
 int missile_speed2=1;
 int fire_random=10;
+int fire_speed=91;
 int enemy_position=20;
 int level=1;
+int pause=0;
 
 // *************************** Images ***************************
 // enemy ship that starts at the top of the screen (arms/mouth closed)
@@ -323,6 +325,7 @@ const unsigned short Bunker0[] = {
 			for (int b =0; b<3;b++){
 				if (Bunker[b].blife == 0){
 					ST7735_DrawBitmap(Bunker[b].xb, Bunker[b].yb, Black_Bunker, 20,15);
+
 				}else {
 						ST7735_DrawBitmap(Bunker[b].xb, Bunker[b].yb, Bunker[b].imageb[Bunker[b].blife-1], 20,15);
 				}
@@ -481,7 +484,7 @@ void Player_Fire(){
 	Sound_Shoot();
 }
 //
-		void Move_Laser(void){
+void Move_Laser(void){
 			int topY=Laser.y-9;
 			static int count=0;
 			for(int i=0;i<15;i++){
@@ -490,6 +493,7 @@ void Player_Fire(){
 						if(Laser.x>=Enemy[i].x && Laser.x<=Enemy[i].x+15){ //check if collition w/ x of enemy
 							Enemy[i].life=0; //kill enemy
 							Laser.life=0;			//kill laser
+							Sound_InvaderKilled();
 							ST7735_FillRect(Laser.x, Laser.y-10, 4, 10, 0x0000); //erase laser
 							ST7735_FillRect(Enemy[i].x, Enemy[i].y-8, 16, 10, 0x0000); //erase enemy
 							Laser.y=145;	//reset laser value
@@ -509,7 +513,7 @@ void Player_Fire(){
 				for(int i=0; i<3;i++){
 				if(Bunker[i].blife!=0){
 					if(Laser.x>=Bunker[i].xb && Laser.x<=Bunker[i].xb+20){
-						if(Laser.y <= 135){
+						if(Laser.y <= 140){
 							ST7735_FillRect(Laser.x, Laser.y-10, 4, 10, 0x0000);
 							Bunker[i].blife = Bunker[i].blife-1;
 							Laser.y=0;
@@ -547,7 +551,7 @@ STyp Missiles[5]={
 };
 void Enemy_Fire(void){
 	static int count=0;
-	if(count>=100){
+	if(count>=fire_speed){
 		int will_fire = Random()%fire_random;//fires only when 0
 		int who_fire;
 		int missile=5;
@@ -578,7 +582,7 @@ void Enemy_Fire(void){
 	count++;
 }
 //
-	void Move_Missile(void){
+void Move_Missile(void){
 			static int count=0;
 				for(int i=0;i<5;i++){
 					if(Missiles[i].life){
@@ -597,6 +601,7 @@ void Enemy_Fire(void){
 						if(Missiles[i].y>=147){
 							if(Missiles[i].x>=xPlayer&&Missiles[i].x<=xPlayer+18){
 								lives--;
+								Sound_Killed();
 								ST7735_FillRect(Missiles[i].x-1, Missiles[i].y-12, 4, 11, 0x0000);
 								Missiles[i].life=0;
 								Missiles[i].y=0;
@@ -631,8 +636,10 @@ void SysTick_Handler(void){
 	ADCMail = ADC_In();	//get ADC
 	button1Mail= button1(); //get Button
 	button2Mail= button2(); //get Button
-	Move_Enemy();	
-	Move_Missile();
+	if(!pause){
+		Move_Enemy();	
+		Move_Missile();
+	}
 	ADCStatus = 1;				//set status
 					
 	IO_HeartBeat();
@@ -652,8 +659,18 @@ int main(void){
 	
 	Timer0_Init(7273);
   ST7735_FillScreen(0x0000);            // set screen to black
+	ST7735_SetCursor(4,4);
+	ST7735_OutString("Space Invaders ");
+	ST7735_SetCursor(3,9);
+	ST7735_OutString("Rogelio Salomon ");
+	ST7735_SetCursor(0,10);
+	ST7735_OutString("Alejandro Paez Touche");
+	
+	Delay100ms(35);
+	ST7735_FillScreen(0x0000);  
   while(lives){
 		if(button2Mail){
+			pause=1;
 			ST7735_FillScreen(0x0000); 
 			ST7735_SetCursor(5,5);
 			ST7735_OutString("Paused ");
@@ -661,6 +678,7 @@ int main(void){
 			while(!button2Mail){
 				
 			}
+			pause=0;
 			Delay100ms(2);
 			ST7735_FillScreen(0x0000); 
 		}
