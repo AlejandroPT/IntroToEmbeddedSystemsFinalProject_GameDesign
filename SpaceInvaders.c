@@ -64,6 +64,7 @@ void Delay100ms(uint32_t count); // time delay in 0.1 seconds
 
 int ADCMail;
 int button1Mail;
+int button2Mail;
 int ADCStatus = 0;
 int32_t xPlayer=0, yPlayer=155;
 int Score=0;
@@ -356,6 +357,10 @@ void SysTick_Init(void){
 uint32_t button1(void){
 	return (GPIO_PORTF_DATA_R&0x10);
 }
+
+uint32_t button2(void){
+	return (GPIO_PORTF_DATA_R&0x04);
+}
 //
 struct State{
 	unsigned long x;
@@ -625,6 +630,7 @@ void Draw_Missile(void){
 void SysTick_Handler(void){
 	ADCMail = ADC_In();	//get ADC
 	button1Mail= button1(); //get Button
+	button2Mail= button2(); //get Button
 	Move_Enemy();	
 	Move_Missile();
 	ADCStatus = 1;				//set status
@@ -647,6 +653,17 @@ int main(void){
 	Timer0_Init(7273);
   ST7735_FillScreen(0x0000);            // set screen to black
   while(lives){
+		if(button2Mail){
+			ST7735_FillScreen(0x0000); 
+			ST7735_SetCursor(5,5);
+			ST7735_OutString("Paused ");
+			Delay100ms(5);
+			while(!button2Mail){
+				
+			}
+			Delay100ms(2);
+			ST7735_FillScreen(0x0000); 
+		}
 		Draw_Enemy();
 		Draw_Missile();
 		Draw_Bunker();

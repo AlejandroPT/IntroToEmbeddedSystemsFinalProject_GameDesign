@@ -1,4 +1,4 @@
-; IO.s
+ ; IO.s
 ; Student names: Alejandro Paez Touche & Rogelio Salomon
 ; Last modification date: 10/24/16
 ; Runs on LM4F120/TM4C123
@@ -19,6 +19,7 @@
         EXPORT   IO_Touch
         EXPORT   IO_HeartBeat
 		EXPORT 	 IO_Button1
+		EXPORT 	 IO_Button2	
 
 GPIO_PORTF_DATA_R  EQU 0x400253FC
 GPIO_PORTF_DIR_R   EQU 0x40025400
@@ -66,7 +67,7 @@ IO_Init
 	LDR R1, =GPIO_PORTF_DIR_R
 	LDR R0, [R1]
 	ORR R0,R0, #0x02		;output PF1
-	BIC R0,R0, #0x10		;input PF4
+	BIC R0,R0, #0x14		;input PF4
 	STR R0, [R1]
 	
 	LDR R1, =GPIO_PORTF_AFSEL_R
@@ -76,7 +77,7 @@ IO_Init
 	
 	LDR R1, =GPIO_PORTF_DEN_R
 	LDR R0, [R1]
-	ORR R0, #0x12
+	ORR R0, #0x16
 	STR R0, [R1]
     
     BX  LR
@@ -109,6 +110,13 @@ IO_Button1
 	LDR R1, =GPIO_PORTF_DATA_R 
 	LDR R0, [R1]
 	AND R0,R0, 0x10
+	
+	BX LR
+	
+IO_Button2
+	LDR R1, =GPIO_PORTF_DATA_R 
+	LDR R0, [R1]
+	AND R0,R0, 0x01
 	
 	BX LR
 
